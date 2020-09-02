@@ -14,6 +14,8 @@ def main():
     window = pyg.display.set_mode((WIDTH, HEIGHT))
     clock = pyg.time.Clock()
     game = ChessBoard.Board() # creating the 2D list representation of the chess board
+    validMoves = game.getValidMoves()
+    moveMade = False # Boolean when a move is made so validMoves does not prematurely makes the appropriate moves
     create_chess_pieces() 
     running = True
     squareSelected = () # Will keep track of the last click of the user
@@ -35,9 +37,20 @@ def main():
                 if len(playerClicks) == 2: # Player clicked two different squares
                     move = ChessBoard.Move(playerClicks[0], playerClicks[1], game.board)
                     print(move.getChessNotation())
-                    game.makeMove(move)
+                    if move in validMoves:
+                        game.makeMove(move)
+                        moveMade = True
                     squareSelected = ()
                     playerClicks = []
+            elif event.type == pyg.KEYDOWN:
+                if event.key == pyg.K_u: # Undo when u is pressed
+                    game.undoMove()
+                    moveMade = True
+
+        if moveMade:
+            validMoves = game.getValidMoves()
+            moveMade = False
+            
         draw_game(window, game)
         clock.tick(MAX_FPS)
         pyg.display.flip()
