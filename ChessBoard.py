@@ -9,30 +9,41 @@ class Board():
         self.board = [
             ["bR", "bN", "bB", "bQ", "bK", "bB", "bN", "bR"],
             ["bP", "bP", "bP", "bP", "bP", "bP", "bP", "bP"],
-            ["--", "--", "--", "wP", "--", "--", "--", "--"],
             ["--", "--", "--", "--", "--", "--", "--", "--"],
             ["--", "--", "--", "--", "--", "--", "--", "--"],
-            ["--", "--", "--", "bP", "--", "--", "--", "--"],
+            ["--", "--", "--", "--", "--", "--", "--", "--"],
+            ["--", "--", "--", "--", "--", "--", "--", "--"],
             ["wP", "wP", "wP", "wP", "wP", "wP", "wP", "wP"],
             ["wR", "wN", "wB", "wQ", "wK", "wB", "wN", "wR"],    
         ]
         self.moveFunctions = {'P': self.getPawnMoves, 'R': self.getRookMoves, 'N': self.getKnightMoves,
                              'B': self.getBishopMoves, 'Q': self.getQueenMoves, 'K': self.getKingMoves}
-        self.whiteToMove = True
+        self.whitesMove = True
         self.movesLog = []
+        self.whiteKingLocation = (7, 4)
+        self.blackKingLocation = (0, 4)
 
     def makeMove(self, move):
-        self.board[move.startRow][move.startCol] = "--"
+        self.board[move.startRow][move.startCol] = '--'
         self.board[move.endRow][move.endCol] = move.pieceMoved
         self.movesLog.append(move)
-        self.whiteToMove = not self.whiteToMove
+        self.whitesMove = not self.whitesMove
+        # Update king's location
+        if move.pieceMoved == 'wK':
+            self.whiteKingLocation(move.endRow, move.endCol)
+        elif move.pieceMoves == 'bK':
+            self.blackKingLocation(move.endRow, move.endCol)
 
     def undoMove(self):
         if len(self.movesLog) != 0:
             move = self.movesLog.pop()
             self.board[move.startRow][move.startCol] = move.pieceMoved
             self.board[move.endRow][move.endCol] = move.pieceCaptured
-            self.whiteToMove = not self.whiteToMove
+            self.whitesMove = not self.whitesMove
+            if move.pieceMoved == 'wK':
+                self.whiteKingLocation(move.startRow, move.startCol)
+            elif move.pieceMoves == 'bK':
+                self.blackKingLocation(move.startRow, move.startCol)
     
     # Considers checks on the King
     def getValidMoves(self):
@@ -44,49 +55,101 @@ class Board():
         for row in range(len(self.board)):
             for col in range(len(self.board[row])):
                 turn = self.board[row][col][0]
-                if (turn == 'w' and self.whiteToMove) or (turn == 'b' and not self.whiteToMove):
+                if (turn == 'w' and self.whitesMove) or (turn == 'b' and not self.whitesMove):
                     piece = self.board[row][col][1]
-                    self.moveFunctions[piece](row, col, moves) # Call appropriate move funciton based on piece type
+                    self.moveFunctions[piece](row, col, moves) # Call appropriate move function based on piece type
         return moves
                     
     def getPawnMoves(self, row, col, moves):
-        if self.whiteToMove:
-            if self.board[row - 1][col] == "--": # One square pawn advance
-                moves.append(Move((row, col), (row - 1, col), self.board))
-                if row == 6 and self.board[row - 2][col] == "--": # Two square pawn advance if first move
-                    moves.append(Move((row, col), (row - 2, col), self.board))
-            if col - 1 >= 0: # Make sure within the board
-                if self.board[row - 1][col - 1][0] == 'b': # Capture on left
-                    moves.append(Move((row, col), (row - 1, col - 1), self.board))
-            if col + 1 <= 7: 
-                if self.board[row - 1][col + 1][0] == 'b': # Capture on right
-                    moves.append(Move((row, col), (row - 1, col + 1), self.board))
+        if self.whitesMove:
+            if row - 1 >= 0: # Make sure within the board
+                if self.board[row - 1][col] == '--': # One square pawn advance
+                    moves.append(Move((row, col), (row - 1, col), self.board))
+                    if row == 6 and self.board[row - 2][col] == '--': # Two square pawn advance if first move
+                        moves.append(Move((row, col), (row - 2, col), self.board))
+                if col - 1 >= 0: # Make sure within the board
+                    if self.board[row - 1][col - 1][0] == 'b': # Capture on left
+                        moves.append(Move((row, col), (row - 1, col - 1), self.board))
+                if col + 1 <= 7: 
+                    if self.board[row - 1][col + 1][0] == 'b': # Capture on right
+                        moves.append(Move((row, col), (row - 1, col + 1), self.board))
         else:
-            if self.board[row + 1][col] == "--": # One square pawn advance
-                moves.append(Move((row, col), (row + 1, col), self.board))
-                if row == 1 and self.board[row + 2][col] == "--": # Two square pawn advance if first move
-                    moves.append(Move((row, col), (row + 2, col), self.board))
-            if col - 1 >= 0: # Make sure within the board
-                if self.board[row + 1][col - 1][0] == 'w': # Capture on left
-                    moves.append(Move((row, col), (row + 1, col - 1), self.board))
-            if col + 1 <= 7: 
-                if self.board[row + 1][col + 1][0] == 'w': # Capture on right
-                    moves.append(Move((row, col), (row + 1, col + 1), self.board))
+            if row + 1 <= 7: # Make sure within the board
+                if self.board[row + 1][col] == '--': # One square pawn advance
+                    moves.append(Move((row, col), (row + 1, col), self.board))
+                    if row == 1 and self.board[row + 2][col] == '--': # Two square pawn advance if first move
+                        moves.append(Move((row, col), (row + 2, col), self.board))
+                if col - 1 >= 0: # Make sure within the board
+                    if self.board[row + 1][col - 1][0] == 'w': # Capture on left
+                        moves.append(Move((row, col), (row + 1, col - 1), self.board))
+                if col + 1 <= 7: 
+                    if self.board[row + 1][col + 1][0] == 'w': # Capture on right
+                        moves.append(Move((row, col), (row + 1, col + 1), self.board))
 
     def getRookMoves(self, row, col, moves):
-        pass
+        directions = ((-1, 0), (0, 1), (1, 0), (0, -1)) # up, right, down, left
+        enemyColor = 'b' if self.whitesMove else 'w'
+        for d in directions:
+            for i in range(1, 8):
+                endRow = row + d[0] * i
+                endCol = col + d[1] * i
+                if 0 <= endRow <= 7 and 0 <= endCol <= 7:
+                    endPiece = self.board[endRow][endCol]
+                    if endPiece == '--':
+                        moves.append(Move((row, col), (endRow, endCol), self.board)) 
+                    elif endPiece[0] == enemyColor: # Enemy Piece, take
+                        moves.append(Move((row, col), (endRow, endCol), self.board))
+                        break # Break to get out of inner loop, Rook cannot get go further as piece is in way
+                    else: # Friendly piece, same reason as previous line comment
+                        break
+                else: # Off board
+                    break
 
     def getKnightMoves(self, row, col, moves):
-        pass
+        directions = ((-2, -1), (-1, -2), (1, -2), (2, -1), (2, 1), (1, 2), (-1, 2), (-2, 1))
+        enemyColor = 'b' if self.whitesMove else 'w'
+        for d in directions:
+            endRow = row + d[0]
+            endCol = col + d[1]
+            if 0 <= endRow <= 7 and 0 <= endCol <= 7:
+                endPiece = self.board[endRow][endCol]
+                if endPiece[0] == enemyColor or endPiece == '--':
+                    moves.append(Move((row, col), (endRow, endCol), self.board)) 
+
 
     def getBishopMoves(self, row, col, moves):
-        pass
+        directions = ((-1, -1), (-1, 1), (1, -1), (1, 1)) # top right, top left, bottom right, bottom left
+        enemyColor = 'b' if self.whitesMove else 'w'
+        for d in directions:
+            for i in range(1, 8):
+                endRow = row + d[0] * i
+                endCol = col + d[1] * i
+                if 0 <= endRow <= 7 and 0 <= endCol <= 7:
+                    endPiece = self.board[endRow][endCol]
+                    if endPiece == '--':
+                        moves.append(Move((row, col), (endRow, endCol), self.board)) 
+                    elif endPiece[0] == enemyColor: # Enemy Piece, take
+                        moves.append(Move((row, col), (endRow, endCol), self.board))
+                        break # Break to get out of inner loop, Rook cannot get go further as piece is in way
+                    else: # Friendly piece, same reason as previous line comment
+                        break
+                else: # Off board
+                    break
 
     def getQueenMoves(self, row, col, moves):
-        pass
+        self.getRookMoves(row, col, moves)
+        self.getBishopMoves(row, col, moves)
 
     def getKingMoves(self, row, col, moves):
-        pass
+        directions = ((-1, 0), (-1, -1), (0, -1), (1, -1), (1, 0), (1, 1), (0, 1), (-1, 1))
+        enemyColor = 'b' if self.whitesMove else 'w'
+        for i in range(8):
+            endRow = row + directions[i][0]
+            endCol = col + directions[i][1]
+            if 0 <= endRow <= 7 and 0 <= endCol <= 7:
+                endPiece = self.board[endRow][endCol]
+                if endPiece[0] == enemyColor or endPiece == '--':
+                    moves.append(Move((row, col), (endRow, endCol), self.board)) 
 
 
 

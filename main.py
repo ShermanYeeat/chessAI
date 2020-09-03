@@ -40,8 +40,10 @@ def main():
                     if move in validMoves:
                         game.makeMove(move)
                         moveMade = True
-                    squareSelected = ()
-                    playerClicks = []
+                        squareSelected = ()
+                        playerClicks = []
+                    else: # invalid second click / Move i.e (second click on friendly piece)
+                        playerClicks = [squareSelected]
             elif event.type == pyg.KEYDOWN:
                 if event.key == pyg.K_u: # Undo when u is pressed
                     game.undoMove()
@@ -50,7 +52,7 @@ def main():
         if moveMade:
             validMoves = game.getValidMoves()
             moveMade = False
-            
+
         draw_game(window, game)
         clock.tick(MAX_FPS)
         pyg.display.flip()
@@ -59,10 +61,10 @@ def main():
 def create_chess_pieces():
     pieces = ["wR", "wN", "wB", "wQ", "wK", "wP", "bR", "bN", "bB", "bQ", "bK", "bP"]
     for piece in pieces:
-        IMAGES[piece] = pyg.transform.scale(pyg.image.load("images/" + piece + ".png"), (SQUARE_SIZE, SQUARE_SIZE))
+        IMAGES[piece] = pyg.transform.scale(pyg.image.load('images/' + piece + '.png'), (SQUARE_SIZE, SQUARE_SIZE))
 
 def draw_game(window, game):
-    chess_board = pyg.transform.scale(pyg.image.load("images/board.png"), (WIDTH, HEIGHT))
+    chess_board = pyg.transform.scale(pyg.image.load('images/board.png'), (WIDTH, HEIGHT))
     window.blit(chess_board, (0, 0))
     draw_pieces(window, game)
     pyg.display.update()
@@ -71,7 +73,7 @@ def draw_pieces(window, game):
     for row in range(DIMENSION):
         for col in range(DIMENSION):
             piece = game.board[row][col]
-            if piece != "--":
+            if piece != '--':
                 window.blit(IMAGES[piece], (col * SQUARE_SIZE, row * SQUARE_SIZE))
 
 if __name__ == "__main__":
