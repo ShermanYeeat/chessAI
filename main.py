@@ -37,12 +37,13 @@ def main():
                 if len(playerClicks) == 2: # Player clicked two different squares
                     move = ChessBoard.Move(playerClicks[0], playerClicks[1], game.board)
                     print(move.getChessNotation())
-                    if move in validMoves:
-                        game.makeMove(move)
-                        moveMade = True
-                        squareSelected = ()
-                        playerClicks = []
-                    else: # invalid second click / Move i.e (second click on friendly piece)
+                    for i in range(len(validMoves)):
+                        if move == validMoves[i]:
+                            game.makeMove(validMoves[i])
+                            moveMade = True
+                            squareSelected = ()
+                            playerClicks = []
+                    if not moveMade: # invalid second click / Move i.e (second click on friendly piece)
                         playerClicks = [squareSelected]
             elif event.type == pyg.KEYDOWN:
                 if event.key == pyg.K_u: # Undo when u is pressed
