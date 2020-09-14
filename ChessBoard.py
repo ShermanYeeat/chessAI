@@ -1,3 +1,9 @@
+import sys 
+import time
+sys.setrecursionlimit(10000) 
+TIMEOUT = 20
+start = None
+end = None
 class Board():
 
     def __init__(self):  
@@ -28,6 +34,12 @@ class Board():
         # Update log correctly with the actual values
         self.castleRightsLog = [CastleRights(self.currentCastlingRight.wks, self.currentCastlingRight.bks,
                                              self.currentCastlingRight.wqs, self.currentCastlingRight.bqs )]
+        self.INTIAL_DEPTH = 2
+        self.currentDepth = 0
+        self.globalBestMove = None
+        self.bestMove = None
+        self.timedOut = None
+        
             
     def makeMove(self, move):
         self.board[move.startRow][move.startCol] = '--'
@@ -280,6 +292,88 @@ class Board():
             if not self.squareUnderAttack(row, col - 1) and not self.squareUnderAttack(row, col - 2):
                 moves.append(Move((row, col), (row, col - 2), self.board, isCastleMove = True))
 
+    # Pieces are assigned values
+    # Determine the score of white and black based on the current board
+    def computeScore(self):
+        pieceValues = {"P": 1, "B": 3, "N": 3, "R": 5, "Q": 9 , "K": 99}
+        blackPieces = []
+        whitePieces = []
+        blackScore = 0
+        whiteScore = 0
+        for row in range(len(self.board)):
+            for col in range(len(self.board[row])):
+                color = self.board[row][col][0]
+                piece = self.board[row][col]
+                if color == 'w':
+                    whitePieces.append(piece)
+                elif color == 'b':
+                    blackPieces.append(piece)
+        for bPiece in blackPieces:
+            blackScore += pieceValues[bPiece[1]]
+        for wPiece in whitePieces:
+            whiteScore += pieceValues[wPiece[1]]
+        # print("White's score: " + str(whiteScore))
+        # print("Black's score: " + str(blackScore))
+        if self.whitesMove:
+            return whiteScore - blackScore
+        return blackScore - whiteScore
+
+    def undoMovee(self, move):
+        self.board[move.startRow][move.startCol] = move.pieceMoved
+        self.board[move.endRow][move.endCol] = move.pieceCaptured
+        self.whitesMove = not self.whitesMove
+    
+    def aiMove(self):
+        self.makeMove(self.findBestMove())
+
+    def findBestMove(self):
+        self.timedOut = False
+        start = time.time()
+        for d in range(10):
+            if d > 0:
+                self.globalBestMove = self.bestMove
+                print("Completed search with depth: " + str(self.currentDepth))
+            self.currentDepth = self.INTIAL_DEPTH + d
+            self.maximizer(self.currentDepth, -10000, 10000, start)
+            if self.timedOut:
+                return self.globalBestMove
+        return self.globalBestMove
+
+    def maximizer(self, depth, alpha, beta, start):
+        end = time.time()
+        if (end - start > TIMEOUT):
+            self.timedOut = True
+            return alpha
+        if depth == 0:
+            return self.computeScore()
+        moves = self.getValidMoves()
+        for move in moves:
+            self.makeMove(move)
+            score = self.minimizer(depth - 1, alpha, beta, start)
+            self.undoMovee(move)
+            if score > alpha:
+                alpha = score
+                if depth == self.currentDepth:
+                    # print(move)
+                    self.bestMove = move
+            if alpha >= beta:
+                return alpha
+        return alpha
+        
+    def minimizer(self, depth, alpha, beta, start):
+        if depth == 0:
+            return self.computeScore()
+        moves = self.getValidMoves()
+        for move in moves:
+            self.makeMove(move)
+            score = self.maximizer(depth - 1, alpha, beta, start)
+            self.undoMovee(move)
+            if score <= beta:
+                beta = score
+            if alpha >= beta:
+                return beta
+        return beta
+        
 class CastleRights():
     def __init__(self, wks, bks, wqs, bqs): # WhiteQueensSide, BlackQueenSide, ...
         self.wks = wks

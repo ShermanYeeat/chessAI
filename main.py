@@ -1,19 +1,21 @@
 import pygame as pyg
 from pygame import gfxdraw
 import ChessBoard
-
+import sys 
+sys.setrecursionlimit(10000) 
 
 WIDTH = HEIGHT = 600
 DIMENSION = 8
-MAX_FPS = 30
+MAX_FPS = 60
 SQUARE_SIZE = 75
 IMAGES = {}
 
 # Main driver of the chess engine
-def main():
-    pyg.init()
-    window = pyg.display.set_mode((WIDTH, HEIGHT))
-    clock = pyg.time.Clock()
+def main(window, clock, versusPlayer):
+    if versusPlayer:
+        pyg.display.set_caption('vs Player')
+    else:
+        pyg.display.set_caption('vs AI')
     game = ChessBoard.Board() # creating the 2D list representation of the chess board
     validMoves = game.getValidMoves()
     moveMade = False # Boolean when a move is made so validMoves does not prematurely makes the appropriate moves
@@ -43,6 +45,7 @@ def main():
                         for i in range(len(validMoves)):
                             if move == validMoves[i]:
                                 game.makeMove(validMoves[i])
+                                 # game.computeScore()
                                 moveMade = True
                                 squareSelected = ()
                                 playerClicks = []
@@ -58,13 +61,17 @@ def main():
                     squareSelected = ()
                     playerClicks = []
                     moveMade = False
+                if event.key == pyg.K_ESCAPE:
+                    running = False
 
+            
         if moveMade:
             validMoves = game.getValidMoves()
             moveMade = False
 
         if not gameOver:
             draw_game(window, game, validMoves, squareSelected, game.movesLog)
+        
 
         if game.checkMate:
             gameOver = True
@@ -76,8 +83,48 @@ def main():
             gameOver = True
             draw_text(window, 'Stalemate')
 
+        if not versusPlayer and not game.whitesMove:
+            game.aiMove()
+            moveMade = True
+
         clock.tick(MAX_FPS)
         pyg.display.flip()
+
+click = False
+def main_menu():
+    pyg.init()
+    window = pyg.display.set_mode((WIDTH, HEIGHT))
+    clock = pyg.time.Clock()
+    running = True
+    font = pyg.font.SysFont('Arial', 25)
+    pyg.display.set_caption('Main Menu')
+    while running:       
+        window.fill((0, 0, 0))
+        mx, my = pyg.mouse.get_pos()
+        button_1 = pyg.Rect(235, 200, 125, 50)
+        button_2 = pyg.Rect(235, 300, 125, 50)
+        if button_1.collidepoint((mx, my)):
+            if click:
+                main(window, clock, True)
+        if button_2.collidepoint((mx, my)):
+            if click:  
+                main(window, clock, False)
+        pyg.draw.rect(window, (255, 255 , 255), button_1)
+        pyg.draw.rect(window, (255, 255 , 255), button_2)
+        window.blit(font.render("vs Player", True, (0, 0, 0)), (260, 210))
+        window.blit(font.render("vs AI", True, (0, 0, 0)), (260, 310))
+        click = False
+        for event in pyg.event.get():
+            if event.type == pyg.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    click = True
+            if event.type == pyg.QUIT:
+                running = False   
+        pyg.display.update()
+        clock.tick(MAX_FPS)
+
+
+                
     
 # Highlight king if in check
 def highlight_king(screen, game):
@@ -166,8 +213,9 @@ def draw_text(screen, text):
 
 
 
-if __name__ == "__main__":
-    main()
 
+#if __name__ == "__main__":
+#    main()
+main_menu()
 
 
