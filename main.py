@@ -2,13 +2,14 @@ import pygame as pyg
 from pygame import gfxdraw
 import ChessBoard
 import sys 
-sys.setrecursionlimit(10000) 
+sys.setrecursionlimit(5000) 
 
 WIDTH = HEIGHT = 600
 DIMENSION = 8
 MAX_FPS = 60
 SQUARE_SIZE = 75
 IMAGES = {}
+CLICK = False
 
 # Main driver of the chess engine
 def main(window, clock, versusPlayer):
@@ -33,7 +34,7 @@ def main(window, clock, versusPlayer):
                     location = pyg.mouse.get_pos()
                     col = location[0] // SQUARE_SIZE
                     row = location[1] // SQUARE_SIZE
-                    if squareSelected == (row, col): # User clicked same square twice, do nothing
+                    if squareSelected == (row, col): # If user clicked same square twice, reset 
                         squareSelected = () 
                         playerClicks = [] 
                     else: # Add it to player clicks if a different square was clicked
@@ -41,15 +42,15 @@ def main(window, clock, versusPlayer):
                         playerClicks.append(squareSelected)
                     if len(playerClicks) == 2: # Player clicked two different squares
                         move = ChessBoard.Move(playerClicks[0], playerClicks[1], game.board)
-                        print(move.getChessNotation())
+                        # print(move.getChessNotation())
                         for i in range(len(validMoves)):
                             if move == validMoves[i]:
                                 game.makeMove(validMoves[i])
-                                 # game.computeScore()
+                                # game.computeScore()
                                 moveMade = True
                                 squareSelected = ()
                                 playerClicks = []
-                        if not moveMade: # invalid second click / Move i.e (second click on friendly piece)
+                        if not moveMade: # Invalid second click/Move i.e (second click on friendly piece)
                             playerClicks = [squareSelected]
             elif event.type == pyg.KEYDOWN:
                 if event.key == pyg.K_u: # Undo when u is pressed
@@ -90,7 +91,7 @@ def main(window, clock, versusPlayer):
         clock.tick(MAX_FPS)
         pyg.display.flip()
 
-click = False
+
 def main_menu():
     pyg.init()
     window = pyg.display.set_mode((WIDTH, HEIGHT))
@@ -104,20 +105,20 @@ def main_menu():
         button_1 = pyg.Rect(235, 200, 125, 50)
         button_2 = pyg.Rect(235, 300, 125, 50)
         if button_1.collidepoint((mx, my)):
-            if click:
+            if CLICK:
                 main(window, clock, True)
         if button_2.collidepoint((mx, my)):
-            if click:  
+            if CLICK:  
                 main(window, clock, False)
         pyg.draw.rect(window, (255, 255 , 255), button_1)
         pyg.draw.rect(window, (255, 255 , 255), button_2)
         window.blit(font.render("vs Player", True, (0, 0, 0)), (260, 210))
         window.blit(font.render("vs AI", True, (0, 0, 0)), (260, 310))
-        click = False
+        CLICK = False
         for event in pyg.event.get():
             if event.type == pyg.MOUSEBUTTONDOWN:
                 if event.button == 1:
-                    click = True
+                    CLICK = True
             if event.type == pyg.QUIT:
                 running = False   
         pyg.display.update()

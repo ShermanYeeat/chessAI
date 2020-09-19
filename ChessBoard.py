@@ -1,7 +1,7 @@
 import sys 
 import time
-sys.setrecursionlimit(10000) 
-TIMEOUT = 20
+sys.setrecursionlimit(5000) 
+TIMEOUT = 30
 start = None
 end = None
 class Board():
@@ -24,6 +24,8 @@ class Board():
         ]
         self.moveFunctions = {'P': self.getPawnMoves, 'R': self.getRookMoves, 'N': self.getKnightMoves,
                              'B': self.getBishopMoves, 'Q': self.getQueenMoves, 'K': self.getKingMoves}
+        self.whitePieces = {'P': 8, 'R': 2, 'N': 2, 'B': 2, 'Q': 1, 'K': 1}
+        self.blackPieces = {'P': 8, 'R': 2, 'N': 2, 'B': 2, 'Q': 1, 'K': 1}
         self.whitesMove = True
         self.movesLog = []
         self.whiteKingLocation = (7, 4)
@@ -39,9 +41,12 @@ class Board():
         self.globalBestMove = None
         self.bestMove = None
         self.timedOut = None
-        
-            
+           
     def makeMove(self, move):
+        if move.pieceCaptured[0] == 'w':
+            self.whitePieces[move.pieceCaptured[1]] -= 1
+        elif move.pieceCaptured[0] == 'b':
+            self.blackPieces[move.pieceCaptured[1]] -= 1
         self.board[move.startRow][move.startCol] = '--'
         self.board[move.endRow][move.endCol] = move.pieceMoved
         self.movesLog.append(move)
@@ -296,10 +301,18 @@ class Board():
     # Determine the score of white and black based on the current board
     def computeScore(self):
         pieceValues = {"P": 1, "B": 3, "N": 3, "R": 5, "Q": 9 , "K": 99}
-        blackPieces = []
-        whitePieces = []
+        # blackPieces = []
+        # whitePieces = []
         blackScore = 0
         whiteScore = 0
+        for key, value in self.whitePieces.items():
+            whiteScore += pieceValues[key] * value
+        for key, value in self.blackPieces.items():
+            blackScore += pieceValues[key] * value
+        if self.whitesMove:
+            return whiteScore - blackScore
+        return blackScore - whiteScore
+        """
         for row in range(len(self.board)):
             for col in range(len(self.board[row])):
                 color = self.board[row][col][0]
@@ -317,27 +330,67 @@ class Board():
         if self.whitesMove:
             return whiteScore - blackScore
         return blackScore - whiteScore
+        """
 
     def undoMovee(self, move):
+        if move.pieceCaptured[0] == 'w':
+            self.whitePieces[move.pieceCaptured[1]] += 1
+        elif move.pieceCaptured[0] == 'b':
+            self.blackPieces[move.pieceCaptured[1]] += 1
         self.board[move.startRow][move.startCol] = move.pieceMoved
         self.board[move.endRow][move.endCol] = move.pieceCaptured
         self.whitesMove = not self.whitesMove
     
+
     def aiMove(self):
         self.makeMove(self.findBestMove())
 
     def findBestMove(self):
         self.timedOut = False
         start = time.time()
-        for d in range(10):
+        for d in range(6):
             if d > 0:
                 self.globalBestMove = self.bestMove
                 print("Completed search with depth: " + str(self.currentDepth))
             self.currentDepth = self.INTIAL_DEPTH + d
-            self.maximizer(self.currentDepth, -10000, 10000, start)
+            # self.maximizer(self.currentDepth, -10000, 10000, start)
+            self.negamax(self.currentDepth, float("-inf"), float("inf"), start, self.whitesMove)
             if self.timedOut:
                 return self.globalBestMove
         return self.globalBestMove
+
+    def negamax(self, depth, alpha, beta, start, whitesMove):
+        value = float("-inf")
+        end = time.time()
+        if end - start > TIMEOUT:
+            self.timedOut = True
+            return value
+        if depth == 0:
+            return self.computeScore()  
+        moves = self.giveValuesToMoves(self.getValidMoves())
+        orderedMoves = sorted(moves, key=lambda list: list[0], reverse=True)
+        for val, move in orderedMoves:
+            self.makeMove(move)
+            value = max(value, - self.negamax(depth - 1, -beta, -alpha, start, not whitesMove))
+            self.undoMovee(move)
+            if value > alpha:
+                alpha = value
+                if depth == self.currentDepth:
+                    self.bestMove = move
+            if alpha >= beta:
+                return alpha
+        return value
+
+
+    def giveValuesToMoves(self, moves):
+        newMoves = []
+        for move in moves:
+            self.makeMove(move)
+            score = self.computeScore()
+            newMoves.append([score, move])
+            self.undoMovee(move)
+        return newMoves
+
 
     def maximizer(self, depth, alpha, beta, start):
         end = time.time()
